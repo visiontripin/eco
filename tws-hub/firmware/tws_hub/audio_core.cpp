@@ -20,7 +20,7 @@ static const char C_CFG[]    PROGMEM = "AT+A2DPCFG=";
 
 /* ------------------------- состояния задачи ------------------------------ */
 static struct {
-  Topology  topo      = TOPO_MULTI;
+  Topology  topo      = (Topology)TWSHUB_DEFAULT_TOPO;
   bool      busy      = false;
   bool      fresh     = false;      /* фаза только началась, команда не послана */
   uint8_t   slot      = 0xFF;

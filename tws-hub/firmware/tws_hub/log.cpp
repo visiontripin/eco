@@ -4,14 +4,21 @@
 #include <stdio.h>
 
 void logBegin(unsigned long baud) {
-  Serial.begin(baud);
 #if TWSHUB_DEBUG
+  Serial.begin(baud);
   while (!Serial && millis() < 2000) { /* ждём USB на native-платах */ }
+#else
+  (void)baud;
 #endif
 }
 
+/*
+ * При TWSHUB_DEBUG=0 вся печать вырезается: это экономит и flash
+ * (vsnprintf_P тянет 1.5-2.5 КБ), и ~200 байт стека под buf[].
+ */
 void logP(char level, const char* fmt_P, ...) {
-  char buf[110];
+#if TWSHUB_DEBUG
+  char buf[80];
   va_list ap;
   va_start(ap, fmt_P);
   vsnprintf_P(buf, sizeof(buf), fmt_P, ap);
@@ -23,6 +30,10 @@ void logP(char level, const char* fmt_P, ...) {
   Serial.print(level);
   Serial.print(": ");
   Serial.println(buf);
+#else
+  (void)level;
+  (void)fmt_P;
+#endif
 }
 
 void hexUpper(uint8_t b, char out[3]) {

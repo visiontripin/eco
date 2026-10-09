@@ -146,6 +146,7 @@ static void handleSerialCli() {
 /* --------------------------------- setup --------------------------------- */
 void setup() {
   logBegin(LOG_BAUD);
+#if TWSHUB_DEBUG
   Serial.print(F("TWS-HUB fw "));
   Serial.println(F(TWS_HUB_VERSION));
 
@@ -153,9 +154,12 @@ void setup() {
   Serial.println(F("board: Arduino Nano Every (ATmega4809)"));
 #elif TWSHUB_BOARD == BOARD_MEGA2560
   Serial.println(F("board: Arduino Mega 2560"));
+#elif TWSHUB_BOARD == BOARD_NANO_HWUART
+  Serial.println(F("board: Nano/Uno, hardware UART shared with BT bus"));
 #else
   Serial.println(F("board: Arduino Nano/Uno (ATmega328P) + SoftwareSerial"));
 #endif
+#endif /* TWSHUB_DEBUG */
 
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
@@ -175,7 +179,9 @@ void setup() {
   audioCoreInit();
 
 #if TWSHUB_DEBUG
-  Serial.println(F("ready. press 'h' for CLI"));
+  Serial.print(F("topo="));
+  Serial.print((int)audioCoreTopology());
+  Serial.println(F("  ready. press 'h' for CLI"));
 #endif
 
   /* если колонки уже известны -- поднимаем линки сразу */

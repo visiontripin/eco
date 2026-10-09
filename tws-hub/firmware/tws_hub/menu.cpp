@@ -116,11 +116,22 @@ static const char* tblItem(const char* const* tbl, uint8_t i) {
   return (const char*)pgm_read_ptr(&tbl[i]);
 }
 
+/*
+ * Классический AVR-приём: разница между вершиной стека и текущим
+ * __brkval (началом кучи). Считаем в байтах через указатели на char,
+ * чтобы не зависеть от разрядности int: на 8-битной AVR ptrdiff_t
+ * 16-битный, на хосте при проверке -- 64-битный, и явное приведение
+ * к int корректно в обоих случаях.
+ */
 static int freeRam() {
 #if defined(__AVR__)
   extern int __heap_start, *__brkval;
   int v;
-  return (int)&v - (__brkval == 0 ? (int)&__heap_start : (int)__brkval);
+  const char* top = (const char*)&v;
+  const char* brk = (__brkval == 0) ? (const char*)&__heap_start
+                                    : (const char*)__brkval;
+  ptrdiff_t d = top - brk;
+  return (int)d;
 #else
   return -1;
 #endif

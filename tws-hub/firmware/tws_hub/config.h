@@ -15,26 +15,37 @@
 #define TWS_HUB_VERSION "0.4.0"
 
 /* --------------------------- 1. Выбор платы ---------------------------- */
-#define BOARD_NANO_CLASSIC 1   /* ATmega328P 16MHz, 2KB RAM, 1 UART */
-#define BOARD_NANO_EVERY   2   /* ATmega4809 20MHz, 6KB RAM, UART1  <-- рекомендую */
-#define BOARD_UNO          3   /* ATmega328P 16MHz, 2KB RAM, 1 UART */
-#define BOARD_MEGA2560     4   /* ATmega2560, 8KB RAM, 4 UART */
+#define BOARD_NANO_CLASSIC 1   /* ATmega328P 16MHz, 2KB RAM: SoftSerial D7/D8, USB свободен */
+#define BOARD_NANO_EVERY   2   /* ATmega4809 20MHz, 6KB RAM, Serial1 */
+#define BOARD_UNO          3   /* ATmega328P 16MHz, 2KB RAM: то же, что Nano Classic */
+#define BOARD_MEGA2560     4   /* ATmega2560, 8KB RAM, Serial1 */
+#define BOARD_NANO_HWUART  5   /* ATmega328P: аппаратный UART D0/D1 на 115200, отладки НЕТ */
 
+/* >>> ВАША КОНФИГУРАЦИЯ: Arduino Nano (ATmega328P) <<< */
 #ifndef TWSHUB_BOARD
-  #define TWSHUB_BOARD BOARD_NANO_EVERY
+  #define TWSHUB_BOARD BOARD_NANO_CLASSIC
 #endif
 
 /* --------------------------- 2. UART к BT-модулям ---------------------- */
 /*
  * Модули Feasycom по умолчанию работают на 115200.
- * Классический Nano/Uno держит 115200 только на аппаратном UART, а он занят
- * USB-отладкой -> используем SoftwareSerial, но на 9600.
- * Поэтому при первом запуске прошивка сама переводит модули на BT_BAUD
- * (см. bt_slot.cpp: slotEnsureBaud()).
+ * У ATmega328P один аппаратный UART и он занят USB-отладкой, поэтому
+ * по умолчанию используем SoftwareSerial на D7/D8 и скорость 9600.
+ *
+ * Если нужен полный 115200 и отладка не важна -- поставьте
+ * BOARD_NANO_HWUART: тогда BT-шина уедет на D0/D1, а Serial-монитор
+ * придётся отключить (при заливке прошивки отключать не нужно).
+ *
+ * При первом запуске прошивка сама находит скорость модуля и переводит
+ * его на BT_TARGET_BAUD (см. bt_slot.cpp: slotEnsureBaud()).
  */
 #if (TWSHUB_BOARD == BOARD_NANO_EVERY) || (TWSHUB_BOARD == BOARD_MEGA2560)
   #define BT_UART_HARDWARE 1
   #define BT_PORT          Serial1
+  #define BT_BAUD          115200
+#elif (TWSHUB_BOARD == BOARD_NANO_HWUART)
+  #define BT_UART_HARDWARE 1
+  #define BT_PORT          Serial
   #define BT_BAUD          115200
 #else
   #define BT_UART_HARDWARE 0
@@ -85,13 +96,30 @@
 /* --------------------------- 5. Логика --------------------------------- */
 #define MAX_SLOTS          8     /* слот 0 = приёмник, слоты 1..7 = передатчики */
 #define RX_SLOT            0
-/* На ATmega328P (Nano/Uno) база колонок — самый крупный consumer ОЗУ:
-   16 записей x 28 байт = 448 байт из 2048. Если не хватает памяти,
-   поставьте 8 (экономия 224 байта). На Nano Every можно и 16. */
-#define MAX_SPEAKERS       16
+
+/* База колонок -- самый крупный потребитель ОЗУ: запись 28 байт.
+   На ATmega328P (2 КБ ОЗУ) 16 записей = 448 байт -- многовато,
+   поэтому для него по умолчанию 8 (224 байта). */
+#ifndef MAX_SPEAKERS
+  #if (TWSHUB_BOARD == BOARD_NANO_EVERY) || (TWSHUB_BOARD == BOARD_MEGA2560)
+    #define MAX_SPEAKERS   16
+  #else
+    #define MAX_SPEAKERS   8
+  #endif
+#endif
+
 #define SPEAKER_NAME_LEN   16
-#define BT_LINE_MAX        80    /* буфер строки ответа модуля */
+#define BT_LINE_MAX        64    /* буфер строки ответа модуля */
 #define BT_MAC_STR_LEN     13    /* 12 hex + '\0' */
+
+/* Топология по умолчанию при первом включении.
+   0 = TOPO_DUAL, 1 = TOPO_MULTI, 2 = TOPO_PARTY, 3 = TOPO_AURACAST
+   (перечисление Topology -- в audio_core.h).
+   AURACAST -- единственный режим, дающий синхронный звук на 3+ колонок
+   разных брендов в одной комнате (см. docs/10-your-config.md). */
+#ifndef TWSHUB_DEFAULT_TOPO
+  #define TWSHUB_DEFAULT_TOPO 3
+#endif
 
 #define DEBOUNCE_MS        25
 #define LONG_PRESS_MS      600
@@ -106,9 +134,21 @@
 #define EEPROM_DB_BASE     8     /* заголовок 8 байт, затем записи */
 
 /* --------------------------- 6. Отладка -------------------------------- */
+/*
+ * Отладка съедает прилично flash (vsnprintf_P + строки) и ~200 байт стека.
+ * Если прошивка не влезает в 32 КБ ATmega328P -- поставьте 0.
+ * На BOARD_NANO_HWUART отладка выключается принудительно: UART занят
+ * BT-шиной, иначе в неё полетят отладочные строки.
+ */
 #ifndef TWSHUB_DEBUG
   #define TWSHUB_DEBUG 1
 #endif
+
+#if (TWSHUB_BOARD == BOARD_NANO_HWUART)
+  #undef  TWSHUB_DEBUG
+  #define TWSHUB_DEBUG 0
+#endif
+
 #define LOG_BAUD 115200
 
 /* --------------------------- 7. Прочие тайминги ------------------------ */
