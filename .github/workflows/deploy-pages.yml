@@ -1,7 +1,13 @@
 name: Deploy demo
 
 # Публикует автономную сборку (docs/) на GitHub Pages.
-# configure-pages с enablement: true включает Pages автоматически при первом запуске.
+#
+# Требование: в репозитории один раз включён GitHub Pages
+#   Settings → Pages → Source: "GitHub Actions"
+# (или "Deploy from a branch" → main → /docs — тогда деплой идёт без workflow).
+#
+# Если Pages ещё не включён, workflow не падает: сборка проходит, а в логах
+# остаётся предупреждение — CI остаётся зелёным.
 on:
   push:
     branches: [main]
@@ -17,9 +23,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build static demo
+  publish:
+    name: Build and publish demo
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,22 +43,28 @@ jobs:
       - name: Build standalone bundle
         run: npm run build:static
 
-      - name: Configure Pages
+      - name: Detect Pages site
+        id: pages
+        continue-on-error: true
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Pages is disabled — manual step required
+        if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::GitHub Pages не включён. Включите один раз: Settings → Pages → Source: 'GitHub Actions' (или 'Deploy from a branch' → main → /docs). Сборка при этом уже готова в docs/."
+          echo "### GitHub Pages не включён" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Статическая сборка готова в \`docs/\`, но публикация не выполнена." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Включите один раз: **Settings → Pages → Source: GitHub Actions** (или **Deploy from a branch → main → /docs**)." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Pages artifact
+        if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
-  deploy:
-    name: Deploy to Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deploy
+        if: steps.pages.outcome == 'success'
         uses: actions/deploy-pages@v4
