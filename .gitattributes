@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.zip binary
+
+# сгенерированные артефакты: не засоряем статистику и диффы
+docs/index.html          linguist-generated=true -diff
+docs/404.html            linguist-generated=true -diff
+docs/downloads/*.zip     linguist-generated=true -diff -merge
+*.ino                    linguist-language=C++
+
+package-lock.json        linguist-generated=true
