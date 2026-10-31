@@ -155,12 +155,21 @@ npm run dev
 
 ### GitHub Pages (демо без сервера)
 
-`npm run build:static` собирает `docs/` — коммит в `main` публикует его автоматически:
+`npm run build:static` собирает `docs/`: приложение в один HTML и Android-архив.
 
-- **https://visiontripin.github.io/eco/** — приложение (движок `browserDb`, данные в браузере);
-- `/downloads/podrabotka-msk-android-preview.zip` — автономный архив для Android (открывается без интернета).
+- **https://visiontripin.github.io/eco/** — приложение (движок `browserDb`, данные остаются в браузере);
+- `/downloads/podrabotka-msk-android-preview.zip` — автономный архив для Android, работает без интернета.
 
-Сборка лежит в репозитории намеренно: сайт остаётся доступен даже без CI и без сервера.
+Публикация настраивается **один раз** в настройках репозитория — оба варианта поддерживаются:
+
+| Вариант | Настройка | Как обновляется |
+|---|---|---|
+| Branch (по умолчанию) | Settings → Pages → *Deploy from a branch* → `main` / `/docs` | автоматически при коммите в `main` |
+| Actions | Settings → Pages → *Source: GitHub Actions* | workflow [`deploy-pages.yml`](.github/workflows/deploy-pages.yml) |
+
+Пока Pages не включён, workflow не падает: сборка выполняется, а в Summary сборки
+появляется подсказка, что осталось нажать одну кнопку. Сборка лежит в репозитории
+намеренно — сайт остаётся доступен даже без CI и без сервера.
 
 ### Docker (full-stack с API и SQLite)
 
