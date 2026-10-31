@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+.static-build/
+*.log
+
+# локальная БД и данные разработчика
+data/*.sqlite
+data/*.sqlite-shm
+data/*.sqlite-wal
+
+# секреты и окружение
+.env
+.env.*
+!.env.example
+
+# OS / редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
